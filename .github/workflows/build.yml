@@ -1,4 +1,4 @@
-name: Simple-EFI-Build
+name: RadicalBoot-Manual
 
 on: [push, workflow_dispatch]
 
@@ -9,17 +9,17 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Compiler
-        run: sudo apt-get install -y clang lld llvm
+        run: sudo apt-get install -y clang lld
 
-      - name: Compile EFI
+      - name: Compile RadicalBoot
         run: |
           mkdir -p build
-          # On compile tous les .c présents dans src/
-          clang -target x86_64-unknown-windows -ffreestanding -fshort-wchar -mno-red-zone -I./include -c src/*.c
-          lld-link -entry:efi_main -subsystem:efi_application -out:build/BOOTX64.EFI *.o
+          # Compilation directe sans headers externes pour éviter les erreurs de chemin
+          clang -target x86_64-unknown-windows -ffreestanding -fshort-wchar -mno-red-zone -c src/main.c -o main.o
+          lld-link -entry:efi_main -subsystem:efi_application -out:build/BOOTX64.EFI main.o
 
-      - name: Upload BOOTX64.EFI
+      - name: Upload Binary
         uses: actions/upload-artifact@v4
         with:
-          name: RadicalBoot-Binary
+          name: BOOTX64
           path: build/BOOTX64.EFI
