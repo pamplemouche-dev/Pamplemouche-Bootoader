@@ -1,12 +1,14 @@
 #include "efi.h"
 
-int GetKey(EFI_SYSTEM_TABLE *ST) {
-    EFI_INPUT_KEY Key;
-    unsigned long long index;
+uint16_t GetKey(EFI_SYSTEM_TABLE *ST) {
+    uint64_t index;
+    EFI_INPUT_KEY key; // On déclare la structure locale
     
-    // Attend qu'une touche soit pressée
+    // Attendre l'appui
     ST->BootServices->WaitForEvent(1, &ST->ConIn->WaitForKey, &index);
-    ST->ConIn->ReadKeyStroke(ST->ConIn, &Key);
     
-    return Key.ScanCode;
+    // Lire la touche
+    ST->ConIn->ReadKeyStroke(ST->ConIn, &key);
+    
+    return key.ScanCode;
 }
