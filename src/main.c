@@ -1,29 +1,26 @@
 #include "efi.h"
-#include "bootargs.h"
 
-// Déclarations des fonctions dans les autres fichiers .c
+// Déclarations externes pour le Linker
 extern void SetDeepBlack(EFI_SYSTEM_TABLE *ST);
-extern void DrawSelector(EFI_SYSTEM_TABLE *ST, int OptionIndex);
-extern EFI_STATUS LoadFileFromDisk(EFI_SYSTEM_TABLE *ST, CHAR16 *Path, void **Buffer, uint64_t *Size);
-extern void SetupArchitecture(boot_args *args);
-extern EFI_STATUS FinalBootStrap(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *ST, void* KernelEntry, boot_args *Args);
-
-void WaitKey(EFI_SYSTEM_TABLE *ST) {
-    uint64_t index;
-    ST->BootServices->WaitForEvent(1, &ST->ConIn->WaitForKey, &index);
-    EFI_INPUT_KEY key;
-    ST->ConIn->ReadKeyStroke(ST->ConIn, &key);
-}
+extern void PatchHardware(EFI_SYSTEM_TABLE *ST);
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *ST) {
-    // 1. Initialisation UI
+    // 1. Initialisation Graphique
     SetDeepBlack(ST);
-    ST->ConOut->OutputString(ST->ConOut, L"RADICAL BOOT v1.0 - Flow Enabled\r\n");
 
-    // 2. Menu simple pour tester le rendu
-    ST->ConOut->OutputString(ST->ConOut, L"Press any key to boot macOS Tahoe 26...\r\n");
-    WaitKey(ST);
+    // 2. Patching ACPI / SMBIOS
+    PatchHardware(ST);
 
-    // 3. Suite du boot...
+    // 3. Interface Flow
+    ST->ConOut->OutputString(ST->ConOut, L"====================================\r\n");
+    ST->ConOut->OutputString(ST->ConOut, L"   RADICAL BOOT - FLOW INTERFACE    \r\n");
+    ST->ConOut->OutputString(ST->ConOut, L"====================================\r\n");
+    ST->ConOut->OutputString(ST->ConOut, L"Status: Ready for macOS Tahoe\r\n\r\n");
+    ST->ConOut->OutputString(ST->ConOut, L"Press any key to initiate kernel jump...\r\n");
+
+    // Boucle d'attente
+    uint64_t index;
+    ST->BootServices->WaitForEvent(1, &ST->ConIn->WaitForKey, &index);
+
     return EFI_SUCCESS;
 }
