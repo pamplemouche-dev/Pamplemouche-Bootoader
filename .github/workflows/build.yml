@@ -1,23 +1,44 @@
-name: RadicalBuild
+name: RadicalBuild-Full-Auto
 
 on: [push, workflow_dispatch]
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build-and-pack:
+    runs-on: ubuntu-latest # On passe sur Ubuntu pour faciliter le téléchargement macos
     steps:
       - uses: actions/checkout@v4
-      - name: Install LLVM
-        run: choco install llvm -y
-      - name: Compile
+
+      - name: Install Compiler (Clang/LLD)
         run: |
-          if not exist build mkdir build
+          sudo apt-get update
+          sudo apt-get install -y clang lld llvm python3
+
+      - name: 1. Compile RadicalBoot
+        run: |
+          mkdir -p build
           clang -target x86_64-unknown-windows -ffreestanding -fshort-wchar -mno-red-zone -I./include -c src/*.c
-          move *.o build/
-          lld-link -entry:efi_main -subsystem:efi_application -out:build/BOOTX64.EFI build/*.o
-        shell: cmd
-      - name: Export
+          lld-link -entry:efi_main -subsystem:efi_application -out:build/BOOTX64.EFI *.o
+
+      - name: 2. Download macOS Recovery (Tahoe/Sequoia)
+        run: |
+          mkdir -p output/com.apple.recovery.boot
+          mkdir -p output/EFI/BOOT
+          # On utilise un script python pour simuler macrecovery
+          # Ici on télécharge Sequoia (15.x) car Tahoe est encore très récent
+          git clone https://github.com/acidanthera/OpenCorePkg.git --depth 1
+          cd OpenCorePkg/Utilities/macrecovery
+          python3 macrecovery.py -b Mac-7BA5B2D9E870852A -m 00000000000000000 download
+          cp BaseSystem.dmg ../../../../output/com.apple.recovery.boot/
+          cp BaseSystem.chunklist ../../../../output/com.apple.recovery.boot/
+
+      - name: 3. Final Assembly
+        run: |
+          cp build/BOOTX64.EFI output/EFI/BOOT/BOOTX64.EFI
+          # On crée un dossier prêt à être copié sur USB
+          zip -r RadicalBoot_macOS_Tahoe.zip output/
+
+      - name: 4. Upload Result
         uses: actions/upload-artifact@v4
         with:
-          name: RadicalBoot-EFI
-          path: build/BOOTX64.EFI
+          name: macOS-Tahoe-Installer
+          path: RadicalBoot_macOS_Tahoe.zip
