@@ -4,14 +4,12 @@ static uint8_t gop_guid[16] = {0xde, 0xa9, 0x42, 0x90, 0x34, 0xdc, 0x4a, 0x4a, 0
 
 void SetDeepBlack(EFI_SYSTEM_TABLE *ST) {
     EFI_GRAPHICS_OUTPUT_PROTOCOL *gop = NULL;
-    EFI_STATUS status = ST->BootServices->LocateProtocol((void*)gop_guid, NULL, (void**)&gop);
+    ST->BootServices->LocateProtocol((void*)gop_guid, NULL, (void**)&gop);
     
-    if (status == EFI_SUCCESS && gop != NULL && gop->Mode != NULL && gop->Mode->Info != NULL) {
+    if (gop && gop->Mode && gop->Mode->Info) {
         EFI_GRAPHICS_OUTPUT_BLT_PIXEL black = {0, 0, 0, 0};
-        
-        uint32_t w = gop->Mode->Info->HorizontalResolution;
-        uint32_t h = gop->Mode->Info->VerticalResolution;
-        
-        gop->Blt(gop, &black, EfiBltVideoFill, 0, 0, 0, 0, w, h, 0);
+        gop->Blt(gop, &black, EfiBltVideoFill, 0, 0, 0, 0, 
+                 gop->Mode->Info->HorizontalResolution, 
+                 gop->Mode->Info->VerticalResolution, 0);
     }
 }
