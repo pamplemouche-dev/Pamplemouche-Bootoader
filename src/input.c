@@ -2,12 +2,10 @@
 
 uint16_t GetKey(EFI_SYSTEM_TABLE *ST) {
     uint64_t index;
-    EFI_INPUT_KEY key;
+    EFI_INPUT_KEY key = {0};
     
-    // Attente de l'événement clavier
+    // Correction du cast pour WaitForEvent
     ST->BootServices->WaitForEvent(1, (void**)&ST->ConIn->WaitForKey, &index);
-    
-    // Lecture de la touche
     ST->ConIn->ReadKeyStroke(ST->ConIn, &key);
     
     return key.ScanCode;
