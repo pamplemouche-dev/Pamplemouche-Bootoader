@@ -1,12 +1,6 @@
-name: RadicalBuild - UEFI & Tahoe Recovery
+name: RadicalBuild
 
-on:
-  workflow_dispatch: # Lancement manuel avec options
-    inputs:
-      macos_version:
-        description: 'Version de macOS (Tahoe/15/14)'
-        required: true
-        default: '15' # Sequoia en attendant Tahoe 26
+on: [push, workflow_dispatch]
 
 jobs:
   build-bootloader:
@@ -15,32 +9,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Install LLVM & Clang
+      - name: Install LLVM
         run: choco install llvm -y
 
       - name: Compile RadicalBoot
         run: |
-          mkdir build
-          # Compilation de tous les modules C
+          if not exist build mkdir build
           clang -target x86_64-unknown-windows -ffreestanding -fshort-wchar -mno-red-zone -I./include -c src/*.c
           move *.o build/
-          # Liaison (Link) pour créer le binaire EFI
           lld-link -entry:efi_main -subsystem:efi_application -out:build/BOOTX64.EFI build/*.o
         shell: cmd
 
-      - name: Prepare Recovery DMG
-        run: |
-          # Utilisation de Python pour télécharger les fichiers Apple
-          # On simule ici l'appel au script tools/macrecovery.py
-          python tools/macrecovery.py -b Mac-7BA5B2D9E870852A -m 00000000000000000 download
-          mkdir -p output/com.apple.recovery.boot
-          move BaseSystem.dmg output/com.apple.recovery.boot/
-          move BaseSystem.chunklist output/com.apple.recovery.boot/
-          move build/BOOTX64.EFI output/EFI/BOOT/BOOTX64.EFI
-        shell: bash
-
-      - name: Create ISO / ZIP Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: RadicalBoot-USB-Package
-          path: output/
+          name: RadicalBoot-EFI
+          path: build/BOOTX64.EFI
