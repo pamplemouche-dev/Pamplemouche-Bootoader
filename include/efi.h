@@ -11,7 +11,7 @@ typedef void* EFI_HANDLE;
 typedef uint64_t EFI_STATUS;
 typedef uint16_t CHAR16;
 
-// --- CLAVIER ---
+// --- STRUCTURES DE BASE ---
 typedef struct { uint16_t ScanCode; CHAR16 UnicodeChar; } EFI_INPUT_KEY;
 
 typedef struct _EFI_SIMPLE_TEXT_INPUT_PROTOCOL {
@@ -20,7 +20,6 @@ typedef struct _EFI_SIMPLE_TEXT_INPUT_PROTOCOL {
     void* WaitForKey;
 } EFI_SIMPLE_TEXT_INPUT_PROTOCOL;
 
-// --- SORTIE TEXTE ---
 typedef struct _EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL {
     void* Reset;
     EFI_STATUS (EFIAPI *OutputString)(struct _EFI_SIMPLE_TEXT_OUTPUT_PROTOCOL *This, const CHAR16 *String);
@@ -47,7 +46,9 @@ typedef struct _EFI_GRAPHICS_OUTPUT_PROTOCOL {
     EFI_GRAPHICS_OUTPUT_PROTOCOL_MODE *Mode;
 } EFI_GRAPHICS_OUTPUT_PROTOCOL;
 
-// --- BOOT SERVICES ---
+// --- TABLES ET SERVICES ---
+typedef struct { uint8_t Guid[16]; void *VendorTable; } EFI_CONFIGURATION_TABLE;
+
 typedef struct {
     char Sig[8]; uint32_t Rev; uint32_t Hdr; uint32_t CRC; uint32_t Res;
     void* _p1[2];
@@ -62,7 +63,6 @@ typedef struct {
     EFI_STATUS (EFIAPI *LocateProtocol)(void*, void*, void**);
 } EFI_BOOT_SERVICES;
 
-// --- SYSTEM TABLE ---
 typedef struct {
     char Sig[8]; uint32_t Rev; uint32_t Hdr; uint32_t CRC; uint32_t Res;
     EFI_HANDLE ConsoleInHandle;
@@ -72,7 +72,7 @@ typedef struct {
     void* RuntimeServices;
     EFI_BOOT_SERVICES *BootServices;
     uint64_t NumberOfTableEntries;
-    void* ConfigurationTable;
+    EFI_CONFIGURATION_TABLE *ConfigurationTable;
 } EFI_SYSTEM_TABLE;
 
 #endif
