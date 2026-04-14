@@ -1,39 +1,32 @@
 #include "efi.h"
 #include "bootargs.h"
+#include "filesystem.h"
 
-// GUID GOP pour l'affichage
-static uint8_t gop_guid[16] = {0xde, 0xa9, 0x42, 0x90, 0x34, 0xdc, 0x4a, 0x4a, 0x9b, 0x9e, 0x2d, 0xb7, 0x35, 0x92, 0x31, 0x5c};
-
-void WaitKey(EFI_SYSTEM_TABLE *ST) {
-    uint64_t index;
-    ST->BootServices->WaitForEvent(1, &ST->ConIn->WaitForKey, &index);
-    EFI_INPUT_KEY key;
-    ST->ConIn->ReadKeyStroke(ST->ConIn, &key);
-}
-
-void SetDeepBlack(EFI_SYSTEM_TABLE *ST) {
-    EFI_GRAPHICS_OUTPUT_PROTOCOL *gop;
-    ST->BootServices->LocateProtocol((void*)gop_guid, 0, (void**)&gop);
-    EFI_GRAPHICS_OUTPUT_BLT_PIXEL black = {0, 0, 0, 0};
-    gop->Blt(gop, &black, EfiBltVideoFill, 0, 0, 0, 0, gop->Mode->Info->HorizontalResolution, gop->Mode->Info->VerticalResolution, 0);
-}
+// Prototypes des modules qu'on a codés
+extern EFI_STATUS LoadFileFromDisk(EFI_SYSTEM_TABLE *ST, CHAR16 *Path, void **Buffer, uint64_t *Size);
+extern void SetupArchitecture(boot_args *args);
+extern EFI_STATUS FinalBootStrap(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *ST, void* KernelEntry, boot_args *Args);
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *ST) {
-    ST->ConOut->OutputString(ST->ConOut, L"RadicalBoot Loading...\r\n");
-    
-    // Activer l'UI Flow
-    SetDeepBlack(ST);
-    
-    ST->ConOut->OutputString(ST->ConOut, L"====================================\r\n");
-    ST->ConOut->OutputString(ST->ConOut, L"   RADICAL BOOT - macOS TAHOE 26    \r\n");
-    ST->ConOut->OutputString(ST->ConOut, L"====================================\r\n");
-    ST->ConOut->OutputString(ST->ConOut, L"[1] Boot macOS Tahoe\r\n");
-    ST->ConOut->OutputString(ST->ConOut, L"[2] Recovery Mode\r\n");
-    ST->ConOut->OutputString(ST->ConOut, L"[3] Reset NVRAM\r\n\r\n");
-    ST->ConOut->OutputString(ST->ConOut, L"Select an option to proceed...\r\n");
+    void *KernelBuffer = 0;
+    uint64_t KernelSize = 0;
+    boot_args Args;
 
-    WaitKey(ST);
-    
-    // Logique de boot à suivre...
+    // 1. Charger le kernel de macOS Tahoe
+    // Le chemin standard pour la récupération est celui-ci :
+    LoadFileFromDisk(ST, L"\\com.apple.recovery.boot\\boot.efi", &KernelBuffer, &KernelSize);
+
+    // 2. Préparer les arguments de boot
+    for(int i=0; i<256; i++) Args.CommandLine[i] = 0;
+    // On force le mode verbose pour voir ce qu'on fait
+    char *cmd = "-v keepsyms=1 debug=0x100 -no_compat_check";
+    for(int i=0; cmd[i] != 0; i++) Args.CommandLine[i] = cmd[i];
+
+    // 3. Configurer l'identité du Mac
+    SetupArchitecture(&Args);
+
+    // 4. Lancer le système
+    FinalBootStrap(ImageHandle, ST, KernelBuffer, &Args);
+
     return EFI_SUCCESS;
 }
