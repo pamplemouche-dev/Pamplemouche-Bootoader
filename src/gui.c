@@ -1,10 +1,15 @@
 #include "efi.h"
 
-void DrawSelector(EFI_SYSTEM_TABLE *ST, int OptionIndex) {
-    // On efface la zone précédente et on dessine un curseur ">"
-    // Dans une version 2.0, on dessinerait un rectangle bleu translucide (GOP)
-    ST->ConOut->OutputString(ST->ConOut, L"\rSelection: ");
-    if (OptionIndex == 0) ST->ConOut->OutputString(ST->ConOut, L"[ > macOS Tahoe ]   Recovery     Reset  ");
-    if (OptionIndex == 1) ST->ConOut->OutputString(ST->ConOut, L"[   macOS Tahoe ] > Recovery     Reset  ");
-    if (OptionIndex == 2) ST->ConOut->OutputString(ST->ConOut, L"[   macOS Tahoe ]   Recovery   > Reset  ");
+static uint8_t gop_guid[16] = {0xde, 0xa9, 0x42, 0x90, 0x34, 0xdc, 0x4a, 0x4a, 0x9b, 0x9e, 0x2d, 0xb7, 0x35, 0x92, 0x31, 0x5c};
+
+void SetDeepBlack(EFI_SYSTEM_TABLE *ST) {
+    EFI_GRAPHICS_OUTPUT_PROTOCOL *gop = NULL;
+    EFI_STATUS status = ST->BootServices->LocateProtocol((void*)gop_guid, NULL, (void**)&gop);
+    
+    if (status == EFI_SUCCESS && gop != NULL) {
+        EFI_GRAPHICS_OUTPUT_BLT_PIXEL black = {0, 0, 0, 0};
+        gop->Blt(gop, &black, EfiBltVideoFill, 0, 0, 0, 0, 
+                 gop->Mode->Info->HorizontalResolution, 
+                 gop->Mode->Info->VerticalResolution, 0);
+    }
 }
