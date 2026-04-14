@@ -3,24 +3,20 @@ name: RadicalBuild
 on: [push, workflow_dispatch]
 
 jobs:
-  build-bootloader:
+  build:
     runs-on: windows-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v4
       - name: Install LLVM
         run: choco install llvm -y
-
-      - name: Compile RadicalBoot
+      - name: Compile
         run: |
           if not exist build mkdir build
           clang -target x86_64-unknown-windows -ffreestanding -fshort-wchar -mno-red-zone -I./include -c src/*.c
           move *.o build/
           lld-link -entry:efi_main -subsystem:efi_application -out:build/BOOTX64.EFI build/*.o
         shell: cmd
-
-      - name: Upload Artifact
+      - name: Export
         uses: actions/upload-artifact@v4
         with:
           name: RadicalBoot-EFI
